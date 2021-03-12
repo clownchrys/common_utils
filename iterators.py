@@ -1,7 +1,10 @@
 class PopIterator:
-    def __init__(self, popable, index=0):
+    def __init__(self, popable):
+        """
+        batch_size=1
+        batch_size is not implemented
+        """
         self.popable = popable
-        self.index = index  # index to pop
         self.rest = self.total = len(popable)
 
     def __iter__(self):
@@ -9,7 +12,7 @@ class PopIterator:
 
     def __next__(self):
         if len(self.popable) > 0:
-            ret = self.popable.pop(self.index)
+            ret = self.popable.pop(0)
             self.rest -= 1
             return ret
         else:
@@ -17,7 +20,7 @@ class PopIterator:
 
 
 class PandasIterator:
-    def __init__(self, pandas_obj, batch_size, start_index=0):
+    def __init__(self, pandas_obj, batch_size=1, start_index=0):
         self.pandas_obj = pandas_obj
         self.batch_size = batch_size
         self.start_index = start_index

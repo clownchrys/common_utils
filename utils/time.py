@@ -1,4 +1,5 @@
 from datetime import datetime
+from contextlib import contextmanager
 
 
 class ETA:
@@ -18,12 +19,25 @@ class ETA:
 
 
 class TimeElapsed:
-    def __init__(self, desc=None):
-        self.desc = desc if desc else 'No desc'
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            ts = datetime.now()
+            print(f"[{ts}] {func.__qualname__!r} begins")
 
-    def __enter__(self):
-        self.begin_at = datetime.now()
-        print(f"[Begin] {self.desc}")
+            ret = func(*args, **kwargs)
 
-    def __exit__(self, type, value, tb):
-        print(f"[End] {self.desc} ({datetime.now() - self.begin_at} elapsed)")
+            te = datetime.now()
+            print(f"[{ts}] {func.__qualname__!r} ends (elapsed: {te - ts})")
+
+            return ret
+        return wrapper
+    
+    @contextmanager
+    def contextmanager(name):
+        ts = datetime.now()
+        print(f"[{ts}] {name!r} begins")
+
+        yield
+
+        te = datetime.now()
+        print(f"[{ts}] {name!r} ends (elapsed: {te - ts})")
