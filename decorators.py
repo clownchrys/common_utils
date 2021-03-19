@@ -2,6 +2,7 @@ import time
 import sys
 import traceback
 from typing import Any, Callable
+from enum import Enum
 
 
 def retry(tries:int, wait:(int or float), exp:bool=False, info_level:int=2, raise_exc:bool=True, dummy_return:Any=None, **kwargs):
@@ -68,3 +69,14 @@ def callback(Callable: Callable):
         
         return wrapper
     return decorator
+
+
+def extend_enum(inherited_enum: Enum):
+    def wrapper(added_enum):
+        joined = {}
+        for item in inherited_enum:
+            joined[item.name] = item.value
+        for item in added_enum:
+            joined[item.name] = item.value
+        return Enum(added_enum.__name__, joined)
+    return wrapper
