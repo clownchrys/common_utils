@@ -42,7 +42,8 @@ def retry(tries: int, wait: (int or float), exp: bool=False, info_level: int=2, 
         def func(*args, **kwargs):
             ...
     """
-    assert info_level in range(4)
+    assert info_level in range(4), 'Argument "info_level" should be in range(4)'
+
     print_func = kwargs.get('print_func', print)
     wait_func = kwargs.get('wait_func', time.sleep)
 
@@ -76,25 +77,32 @@ def retry(tries: int, wait: (int or float), exp: bool=False, info_level: int=2, 
     return decorator
 
 
-def callback(Callable: Callable):
+def callback(callback: Callable, out: bool=False):
     """
-    Callable has an only argument of func's return
+    callback is a callable object with an only argument of func's return
+
+    - out
+        if out is True, func returns callback's output
+        if False, func's return just passes callback
     """
-    assert callable(Callable)
+    assert callable(callback), 'Argument "callback" shoud be a callable object'
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            ret = func(*args, **kwargs)
-            Callable(ret)
-            return ret
-        
+            ret = func(*args, **kwargs) 
+            _ret = callback(ret)
+            if out:
+                return _ret
+            else:
+                return ret
+
         return wrapper
     return decorator
 
 
 def extend_enum(inherited_enum: Enum):
     """
-    the decorator to extend(inherit) Enum class
+    the decorator to extend(or inherit) Enum class
     """
 
     def wrapper(added_enum):
