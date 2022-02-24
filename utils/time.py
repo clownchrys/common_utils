@@ -27,7 +27,7 @@ class TimeElapsed:
             ret = func(*args, **kwargs)
 
             te = datetime.now()
-            print(f"[{ts}] {func.__qualname__!r} ends (elapsed: {te - ts})")
+            print(f"[{te}] {func.__qualname__!r} ends (elapsed: {te - ts})")
 
             return ret
         return wrapper
@@ -40,4 +40,4 @@ class TimeElapsed:
         yield
 
         te = datetime.now()
-        print(f"[{ts}] {name!r} ends (elapsed: {te - ts})")
+        print(f"[{te}] {name!r} ends (elapsed: {te - ts})")
