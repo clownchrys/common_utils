@@ -33,7 +33,7 @@ class TimeElapsed:
         return wrapper
     
     @contextmanager
-    def contextmanager(name):
+    def contextmanager(name: str = "unknown"):
         ts = datetime.now()
         print(f"[{ts}] {name!r} begins")
 
