@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import wraps
 from contextlib import contextmanager
 
 
@@ -20,6 +21,7 @@ class ETA:
 
 class TimeElapsed:
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             ts = datetime.now()
             print(f"[{ts}] {func.__qualname__!r} begins")
