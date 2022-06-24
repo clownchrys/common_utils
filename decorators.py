@@ -1,6 +1,7 @@
 import time
 import sys
 import traceback
+from functools import wraps
 from typing import Any, Callable
 from enum import Enum
 
@@ -10,6 +11,8 @@ def dummy_return(value: Any):
     if the func raises exception, returns dummy value
     """
     def decorator(func):
+        
+        @wraps(func)
         def wrapper(*args, **kwargs):
             try:
                 ret = func(*args, **kwargs)
@@ -48,6 +51,8 @@ def retry(tries: int, wait: (int or float), exp: bool=False, info_level: int=2, 
     wait_func = kwargs.get('wait_func', time.sleep)
 
     def decorator(func):
+        
+        @wraps(func)
         def wrapper(*args, **kwargs):
             for i in range(1, tries + 1):
                 try:
@@ -88,6 +93,8 @@ def callback(callback: Callable, out: bool=False):
     assert callable(callback), 'Argument "callback" shoud be a callable object'
 
     def decorator(func):
+        
+        @wraps(func)
         def wrapper(*args, **kwargs):
             ret = func(*args, **kwargs) 
             _ret = callback(ret)
@@ -105,6 +112,7 @@ def extend_enum(inherited_enum: Enum):
     the decorator to extend(or inherit) Enum class
     """
 
+    @wraps(func)
     def wrapper(added_enum):
         joined = {}
         for item in inherited_enum:
