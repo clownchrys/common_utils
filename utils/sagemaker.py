@@ -25,6 +25,10 @@ def override(func):
 
 
 class BaseWrapper:
+    """
+    * def __init__(self, *args, **kwargs): parameter definition
+    * def wrap(self, func: Callable): actual implementation
+    """
     def __repr__(self):
         class_name = self.__class__.__name__
         parameters = ", ".join(f"{k}={v}" for k, v in self.__dict__.items() if not k.startswith("_"))
