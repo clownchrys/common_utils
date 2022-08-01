@@ -1,18 +1,20 @@
 import time
+import types
+import json
 from warnings import warn
 from typing import List, Tuple, Callable
 from functools import wraps, partial, reduce
 from sagemaker.estimator import EstimatorBase
-# from airflow.models import Variable
+#from airflow.models import Variable
 
 
-### Dummy Class (from airflow.models import Variable)
+## Dummy Class (from airflow.models import Variable)
 class AirflowVariable(dict):
     def set(self, k, v):
         self[k] = v
         warn("Dummy airflow variable using now...")
 Variable = AirflowVariable()
-### Dummy Class End
+## Dummy Class End
 
 
 def override(func):
@@ -23,13 +25,13 @@ def override(func):
 
 
 class BaseWrapper:
-    def wrap(self, func: Callable, *args, **kwargs):
-        raise NotImplementedError("Subclass of BaseWrapper must implement wrap method")
-        
     def __repr__(self):
         class_name = self.__class__.__name__
         parameters = ", ".join(f"{k}={v}" for k, v in self.__dict__.items())
         return f"{class_name}({parameters})"
+    
+    def wrap(self, func: Callable):
+        raise NotImplementedError("Subclass of BaseWrapper must implement wrap method")
 
 
 class RetryWrapper(BaseWrapper):
@@ -40,7 +42,7 @@ class RetryWrapper(BaseWrapper):
         self.exceptions = exceptions
         
     @override
-    def wrap(self, func: Callable, *args, **kwargs):
+    def wrap(self, func: Callable):
         # initialize
         retry = 0
         last_exception = None
@@ -76,7 +78,7 @@ class DynamicTrainWrapper(BaseWrapper):
         self.dynamic_run_types = dynamic_run_types
         
     @override
-    def wrap(self, func: Callable, *args, **kwargs):
+    def wrap(self, func: Callable):
         # get current run type
         last_run_index = self.dynamic_run_types.index(
             Variable.get(self.airflow_variable, self.dynamic_run_types[-1])
@@ -124,35 +126,37 @@ class WrappedFunction:
         _init = partial(self.function, *args, **kwargs)
         _reducer = lambda func, wrapper: partial(wrapper.wrap, func=func)
         return reduce(_reducer, self.wrappers, _init)()
-    
+
     def __repr__(self):
-        indent = " " * 4
-        class_name = self.__class__.__name__
-        function_name = self.function.__func__.__qualname__
-        wrappers_desc = "".join(f"\n{indent * 2}{wrapper}," for wrapper in self.wrappers)
-        return f"{class_name}(\n{indent}fucntion={function_name},\n{indent}wrappers=[{wrappers_desc}\n{indent}]\n)"
+        def json_default(obj):
+            if isinstance(obj, types.BuiltinFunctionType) or isinstance(obj, types.FunctionType):
+                return obj.__qualname__
+            elif isinstance(obj, types.BuiltinMethodType) or isinstance(obj, types.MethodType):
+                return obj.__func__.__qualname__
+            elif isinstance(obj, BaseWrapper):
+                return str(obj)
+            else:
+                raise TypeError('not JSON serializable')
+        return f"{self.__class__.__name__} {json.dumps(self.__dict__, indent=4, default=json_default)}"
         
     def set_wrappers(self, *wrappers: BaseWrapper):
         self.wrappers = wrappers
-        
-        
+
+
 if __name__ == "__main__":
-    class CapacityError(Excpetion):
-        pass
-
-
     class DummyEstimator():
         def fit(self):
             import random
             if random.random() > 0.5:
-                raise CapacityError
+                raise ValueError
             else:
                 return 1
 
     estimator = DummyEstimator()
-    wrapped_fit = WrappedFunction(estimator.fit)
-    wrapped_fit.set_wrappers(
-        RetryWrapper(max_tries=3, wait=1, is_exponential=False, exceptions=[CapacityError]),
+
+    f = WrappedFunction(estimator.fit)
+    f.set_wrappers(
+        RetryWrapper(max_tries=3, wait=1, is_exponential=False, exceptions=[ValueError]),
         DynamicTrainWrapper(estimator=estimator, env_name="TRAIN_TYPE", airflow_variable="TEST_FLAG", dynamic_run_types=["A", "B"]),
     )
-    wrapped_fit()
+    f()
