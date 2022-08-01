@@ -25,13 +25,13 @@ def override(func):
 
 
 class BaseWrapper:
-    def wrap(self, func: Callable, *args, **kwargs):
-        raise NotImplementedError("Subclass of BaseWrapper must implement wrap method")
-
     def __repr__(self):
         class_name = self.__class__.__name__
         parameters = ", ".join(f"{k}={v}" for k, v in self.__dict__.items() if not k.startswith("_"))
         return f"{class_name}({parameters})"
+    
+    def wrap(self, func: Callable):
+        raise NotImplementedError("Subclass of BaseWrapper must implement wrap method")
 
 
 class RetryWrapper(BaseWrapper):
@@ -42,7 +42,7 @@ class RetryWrapper(BaseWrapper):
         self.exceptions = exceptions
         
     @override
-    def wrap(self, func: Callable, *args, **kwargs):
+    def wrap(self, func: Callable):
         # initialize
         retry = 0
         last_exception = None
@@ -78,7 +78,7 @@ class DynamicTrainWrapper(BaseWrapper):
         self.dynamic_run_types = dynamic_run_types
         
     @override
-    def wrap(self, func: Callable, *args, **kwargs):
+    def wrap(self, func: Callable):
         # get current run type
         last_run_index = self.dynamic_run_types.index(
             Variable.get(self.airflow_variable, self.dynamic_run_types[-1])
