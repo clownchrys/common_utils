@@ -3,7 +3,7 @@ import types
 import json
 from warnings import warn
 from typing import List, Tuple, Callable
-from functools import wraps, partial, reduce
+from functools import wraps, partial, reduce, update_wrapper
 from sagemaker.estimator import EstimatorBase
 #from airflow.models import Variable
 
@@ -25,13 +25,13 @@ def override(func):
 
 
 class BaseWrapper:
+    def wrap(self, func: Callable, *args, **kwargs):
+        raise NotImplementedError("Subclass of BaseWrapper must implement wrap method")
+
     def __repr__(self):
         class_name = self.__class__.__name__
-        parameters = ", ".join(f"{k}={v}" for k, v in self.__dict__.items())
+        parameters = ", ".join(f"{k}={v}" for k, v in self.__dict__.items() if not k.startswith("_"))
         return f"{class_name}({parameters})"
-    
-    def wrap(self, func: Callable):
-        raise NotImplementedError("Subclass of BaseWrapper must implement wrap method")
 
 
 class RetryWrapper(BaseWrapper):
@@ -42,7 +42,7 @@ class RetryWrapper(BaseWrapper):
         self.exceptions = exceptions
         
     @override
-    def wrap(self, func: Callable):
+    def wrap(self, func: Callable, *args, **kwargs):
         # initialize
         retry = 0
         last_exception = None
@@ -78,7 +78,7 @@ class DynamicTrainWrapper(BaseWrapper):
         self.dynamic_run_types = dynamic_run_types
         
     @override
-    def wrap(self, func: Callable):
+    def wrap(self, func: Callable, *args, **kwargs):
         # get current run type
         last_run_index = self.dynamic_run_types.index(
             Variable.get(self.airflow_variable, self.dynamic_run_types[-1])
@@ -121,6 +121,7 @@ class WrappedFunction:
         """
         self.function = function
         self.wrappers = tuple()
+        update_wrapper(self, function)
         
     def __call__(self, *args, **kwargs):
         _init = partial(self.function, *args, **kwargs)
@@ -137,7 +138,8 @@ class WrappedFunction:
                 return str(obj)
             else:
                 raise TypeError('not JSON serializable')
-        return f"{self.__class__.__name__} {json.dumps(self.__dict__, indent=4, default=json_default)}"
+        attrs = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+        return f"{self.__class__.__name__} {json.dumps(attrs, indent=4, default=json_default)}"
         
     def set_wrappers(self, *wrappers: BaseWrapper):
         self.wrappers = wrappers
@@ -146,6 +148,9 @@ class WrappedFunction:
 if __name__ == "__main__":
     class DummyEstimator():
         def fit(self):
+            """
+            test docstring
+            """
             import random
             if random.random() > 0.5:
                 raise ValueError
