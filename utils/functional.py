@@ -1,6 +1,6 @@
-from typing import Iterable, Collection, Callable, TypeVar
+from typing import Iterable, Collection, Callable, Tuple, TypeVar
 from functools import reduce
-from itertools import chain, groupby, zip_longest
+from itertools import chain, groupby, zip_longest, tee
 
 
 Value = TypeVar("Value")
@@ -48,3 +48,28 @@ class functional:
     
     def collect(self, collection: Collection) -> Value:
         return collection(self.pipe)
+    
+    def split(self, n: int) -> Tuple[Stream]:
+        return tuple(map(functional, tee(self.pipe, n)))
+    
+    def __iter__(self):
+        return iter(self.pipe)
+    
+    
+if __name__ == "__main__":
+    # _non_iterable = 1
+    # functional(_non_iterable) # TypeError: 'int' object is not iterable
+    
+    _iterable = [1, 2, 3, 4]
+    
+    result1 = functional(_iterable).map(lambda x: x + 1).collect(tuple)
+    print(result1) # (2, 3, 4, 5)
+    
+    tmp1, tmp2 = functional(_iterable).map(lambda x: x + 1).split(2)
+    tmp1 = tmp1.filter(lambda x: x > 3) # 4, 5
+    tmp2 = tmp2.filter(lambda x: x <= 3) # 2, 3
+    result2 = tmp1.zip_longest(tmp2, result1).collect(list)
+    print(result2) # [(4, 2, 2), (5, 3, 3), (None, None, 4), (None, None, 5)]
+    
+    result3 = functional(result1).zip(result2).collect(dict)
+    print(result3) # {2: (4, 2, 2), 3: (5, 3, 3), 4: (None, None, 4), 5: (None, None, 5)}
