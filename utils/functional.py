@@ -17,7 +17,7 @@ class functional:
         self.pipe = map(func, self.pipe)
         return self
     
-    def flatmap(self, func: Callable) -> Stream:
+    def flatMap(self, func: Callable) -> Stream:
         self.pipe = chain(*map(func, self.pipe))
         return self
     
@@ -25,7 +25,7 @@ class functional:
         self.pipe = filter(func, self.pipe)
         return self
     
-    def groupby(self, key: Callable) -> Stream:
+    def groupBy(self, key: Callable) -> Stream:
         pipe = self.pipe
         pipe = sorted(pipe, key=key)
         pipe = groupby(pipe, key=key)
@@ -36,7 +36,7 @@ class functional:
         self.pipe = zip(self.pipe, *map(iter, others))
         return self
     
-    def zip_longest(self, *others: Iterable, fillvalue=None) -> Stream:
+    def zipLongest(self, *others: Iterable, fillvalue=None) -> Stream:
         self.pipe = zip_longest(self.pipe, *map(iter, others), fillvalue=fillvalue)
         return self
     
@@ -68,8 +68,9 @@ if __name__ == "__main__":
     tmp1, tmp2 = functional(_iterable).map(lambda x: x + 1).split(2)
     tmp1 = tmp1.filter(lambda x: x > 3) # 4, 5
     tmp2 = tmp2.filter(lambda x: x <= 3) # 2, 3
-    result2 = tmp1.zip_longest(tmp2, result1).collect(list)
+    result2 = tmp1.zipLongest(tmp2, result1).collect(list)
     print(result2) # [(4, 2, 2), (5, 3, 3), (None, None, 4), (None, None, 5)]
     
-    result3 = functional(result1).zip(result2).collect(dict)
-    print(result3) # {2: (4, 2, 2), 3: (5, 3, 3), 4: (None, None, 4), 5: (None, None, 5)}
+    tmp1 = functional(result2).flatMap(lambda x: x) # [4, 2, 2, 5, 3, 3, None, None, 4, None, None, 5]
+    result3 = tmp1.zip(result1).collect(dict)
+    print(result3) # {4: 2, 2: 4, 5: 5}
