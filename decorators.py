@@ -2,7 +2,6 @@ import time
 import sys
 import traceback
 import asyncio
-import concurrent
 from functools import wraps, partial
 from enum import Enum
 from typing import *
@@ -126,34 +125,15 @@ def extend_enum(inherited_enum: Enum):
     return wrapper
 
 
-class asynchronous:
+def asynchronous(func):
     """
     the decorator to make synchronous function to asynchronous one
     """
     
-    def __init__(
-        self,
-        loop: Optional[asyncio.BaseEventLoop],
-        executor: Optional[concurrent.futures.ThreadPoolExecutor],
-    ):
-        self.loop = loop
-        self.executor = executor
-        
-    def __call__(self, func: Callable):
-        docstrings = [
-            func.__doc__,
-            "\n",
-            f"[Info] following kwargs are added for @{self.__class__.__qualname__}:",
-            "loop     :: Optional[asyncio.BaseEventLoop]",
-            "executor :: Optional[concurrent.futures.ThreadPoolExecutor]",
-        ]
-        func.__doc__ = "\n".join(docstrings)
-        
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            loop = kwargs.get("loop", self.loop)
-            executor = kwargs.get("executor", self.executor)
-            if loop is None:
-                loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(executor, partial(func, *args, **kwargs))        
-        return wrapper
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        loop = asyncio.get_event_loop()
+        f = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(None, f)
+    
+    return wrapper
