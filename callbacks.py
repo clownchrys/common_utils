@@ -6,10 +6,9 @@ class Retriable:
     [Example]
     (
         Retriable(max_tries=5)
-        .attach_exc(sagemaker.exceptions.CapacityError)
-        .attach_exc(sagemaker.exceptions.UnexpectedClientError)
-        .attach_exc(sagemaker.exceptions.UnexpectedStatusException)
-        .detach_exc(IndexError)
+        .retry_when(sagemaker.exceptions.CapacityError)
+        .retry_when(sagemaker.exceptions.UnexpectedClientError, sagemaker.exceptions.UnexpectedStatusException)
+        .not_retry_when(IndexError)
         .execute(estimator.fit)
     )
     """
@@ -17,13 +16,12 @@ class Retriable:
         self.max_tries = max_tries
         self.exceptions = set()
         
-    def attach_exc(self, exc: Exception):
-        self.exceptions.add(exc)
+    def retry_when(self, *exceptions: Exception):
+        self.exceptions.update(exceptions)
         return self
       
-    def detach_exc(self, exc: Exception):
-        if exc in self.exceptions:
-            self.exceptions.remove(exc)
+    def not_retry_when(self, *exceptions: Exception):
+        self.exceptions.difference_update(exceptions)
         return self
     
     def execute(self, f, *args, **kwargs):
